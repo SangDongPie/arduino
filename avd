@@ -1,0 +1,239 @@
+/*
+ * 진동모터 배선
+ * 갈색 IN
+ * 회색 5V
+ * 적색 GND
+ * 
+ * LED 배선
+ * 흰색 R
+ * 노랑 G
+ * 빨강 B
+ * 검정 접지
+ * 
+ * 왼다리 적외선 센서 배선
+ * 보라 5V
+ * 흰색 접지
+ * 회색 거리
+ * 
+ * 오른다리 적외선 센서 배선
+ * 흰색 접지
+ * 갈색 5V
+ * 보라 거리
+ * 
+ */
+
+int LedR = 13;
+int LedG = 12;
+int LedB = 11;
+int vibrate = 3;    
+// 엑츄에이터 출력
+
+int Fsensor1 = A0; // 다리 압력센서
+int Fsensor2 = A1; // 허리 압력센서
+char Isensor1 = A2; // 다리 거리센서 좌
+char Isensor2 = A3; // 다리 거리센서 우
+// 센서
+
+int Fsensor1_v;
+int Fsensor2_v;
+int Isensor1_v;
+int Isensor2_v;
+// 센서 최종 입력값
+
+int Ftime1;
+int Ftime2;
+int Itime1;
+int Itime2;
+int c= 0;
+
+// 기타 변수
+
+void setup()
+{
+  pinMode(LedR, OUTPUT);
+  pinMode(LedG, OUTPUT);
+  pinMode(LedB, OUTPUT);
+  pinMode(vibrate, OUTPUT);
+  Serial.begin(9600);
+}
+
+void reaction1(){
+  Serial.println("reaction1");
+  for (int i=0; i<5; i++)
+  {
+  analogWrite(vibrate, 255);
+  digitalWrite(LedR, HIGH);
+  delay(250);
+  analogWrite(vibrate, 0);
+  digitalWrite(LedR, LOW);
+  delay(250); // 진동 + 빨간색
+  }
+}
+
+void reaction2(){
+  Serial.println("reaction2");
+  for (int i=0; i<5; i++)
+  {
+  analogWrite(vibrate, 255);
+  digitalWrite(LedG, HIGH);
+  delay(250);
+  analogWrite(vibrate, 0);
+  digitalWrite(LedG, LOW);
+  delay(250); // 진동 + 초록색
+  }
+}
+
+void reaction3(){
+  Serial.println("reaction3");
+  for (int i=0; i<15; i++)
+  {
+  analogWrite(vibrate, 255);
+  digitalWrite(LedB, HIGH);
+  delay(100);
+  analogWrite(vibrate, 0);
+  digitalWrite(LedB, LOW);
+  delay(100); // 진동 + 파란색
+  }
+}
+
+void off(){
+  analogWrite(vibrate, 0);
+  digitalWrite(13, LOW);
+  digitalWrite(12, LOW);
+  digitalWrite(11, LOW);
+  delay(100);
+}
+
+void loop()
+{
+  Fsensor1_v = analogRead(Fsensor1);
+  Fsensor2_v = analogRead(Fsensor2);
+  Isensor1_v = map(analogRead(Isensor1), 0, 1023, 0, 5000);
+  Isensor1_v = (24.61/(Isensor1_v-0.1696))*1000; // cm 표현
+  Isensor2_v = map(analogRead(Isensor2), 0, 1023, 0, 5000);
+  Isensor2_v = (24.61/(Isensor2_v-0.1696))*1000; // cm 표현
+
+  if(Fsensor1_v < 900) 
+  {
+    Serial.println ("Not Seated");
+    Serial.print("Fsensor1_v : ");
+    Serial.print(Fsensor1_v);
+    Serial.print(" Fsensor2_v : ");
+    Serial.print(Fsensor2_v);
+    Serial.print(" Isensor1_v : ");
+    Serial.print(Isensor1_v);
+    Serial.print(" Isensor2_v : ");
+    Serial.println(Isensor2_v);
+    delay(500);
+  }
+  else 
+  {
+    int Ftime1 = 0, Ftime2 = 0, Itime1 = 0, Itime2 = 0; 
+    // 앉아 있는 시간, 허리 뗀 시간, 왼쪽 다리 멀어진 시간, 오른쪽 다리 멀어진 시간
+
+    while(Fsensor1_v > 900)
+    {
+      Ftime1++;
+      Fsensor1_v = analogRead(Fsensor1);
+      Fsensor2_v = analogRead(Fsensor2);
+      Isensor1_v = map(analogRead(Isensor1), 0, 1023, 0, 5000);
+      Isensor1_v = (24.61/(Isensor1_v-0.1696))*1000; // cm 표현
+      Isensor2_v = map(analogRead(Isensor2), 0, 1023, 0, 5000);
+      Isensor2_v = (24.61/(Isensor2_v-0.1696))*1000; // cm 표현
+      Serial.print("Fsensor1_v: ");
+      Serial.print(Fsensor1_v);
+      Serial.print(" Fsensor2_v: ");
+      Serial.print(Fsensor2_v);
+      Serial.print(" Isensor1_v: ");
+      Serial.print(Isensor1_v);
+      Serial.print(" Isensor2_v: ");
+      Serial.print(Isensor2_v);
+      Serial.print(" ftime1_v: ");
+      Serial.println(Ftime1);
+      delay(500);
+
+      while(Fsensor2_v < 800 && Fsensor1_v > 900)
+      {
+        Ftime1++;
+        Ftime2++;
+        Fsensor1_v = analogRead(Fsensor1);
+        Fsensor2_v = analogRead(Fsensor2);
+        Serial.print("Fsensor1_v : ");
+        Serial.print(Fsensor1_v);
+        Serial.print(" Fstime2 : ");
+        Serial.print(Ftime2);
+        Serial.print(" Fsensor2_v : ");
+        Serial.println(Fsensor2_v);
+        delay(500);
+        
+        while (Ftime2 > 5)
+        {
+          reaction1();
+          Fsensor1_v = analogRead(Fsensor1);
+          Fsensor2_v = analogRead(Fsensor2);
+          if(Fsensor2_v > 800 || Fsensor1_v < 900) Ftime2 = 0;
+        }
+       } // 허리 5초 이상 떼면 진동 + 빨간색, 다시 붙이면 끔, 시간은 다시 0초로
+        
+      while(Isensor1_v > 25 && Fsensor1_v > 900)
+      {
+        Ftime1++;
+        Itime1++;
+        Fsensor1_v = analogRead(Fsensor1);
+        Isensor1_v = map(analogRead(Isensor1), 0, 1023, 0, 5000);
+        Isensor1_v = (24.61/(Isensor1_v-0.1696))*1000;
+        Serial.print("Fsensor1_v : ");
+        Serial.print(Fsensor1_v);
+        Serial.print(" Itime1 : ");
+        Serial.print(Itime1);
+        Serial.print(" Isensor1_v : ");
+        Serial.println(Isensor1_v);
+        delay(500);
+        
+        while (Itime1 > 7)
+        {
+          reaction2();
+          Isensor1_v = map(analogRead(Isensor1), 0, 1023, 0, 5000);
+          Isensor1_v = (24.61/(Isensor1_v-0.1696))*1000;
+          if(Isensor1_v < 25 || Fsensor1_v < 900) Itime1 = 0;
+        }
+      }
+      Itime1 = 0;
+      // 왼쪽 다리 7초 이상 멀어지면 진동 + 초록색, 다시 가까워지면 끔, 시간은 다시 0초로
+      
+      while(Isensor2_v > 25 && Fsensor1_v > 900)
+      {
+        Ftime1++;
+        Itime2++;
+        Fsensor1_v = analogRead(Fsensor1);
+        Serial.print("Fsensor1_v : ");
+        Serial.print(Fsensor1_v);
+        Serial.print(" Itime2 : ");
+        Serial.print(Itime2);
+        Serial.print(" Isensor2_v : ");
+        Serial.println(Isensor2_v);
+        Isensor2_v = map(analogRead(Isensor2), 0, 1023, 0, 5000);
+        Isensor2_v = (24.61/(Isensor2_v-0.1696))*1000;
+        Serial.println("Itime2 = " + Itime2);
+        delay(500);
+        
+        while (Itime2 > 7)
+        {
+          reaction2();
+          Fsensor1_v = analogRead(Fsensor1);
+          Isensor2_v = map(analogRead(Isensor2), 0, 1023, 0, 5000);
+          Isensor2_v = (24.61/(Isensor2_v-0.1696))*1000;
+          if(Isensor2_v < 25 || Fsensor1_v < 900) Itime2 = 0;
+        }
+      }
+      Itime2 = 0;
+      // 오른쪽 다리 7초 이상 멀어지면 진동 + 초록색, 다시 가까워지면 끔, 시간은 다시 0초로
+      
+      while (Ftime1 > 60)
+        {
+          reaction3();
+          Ftime1 = 0;
+        }
+    } // 60초 이상 앉아있으면 진동 + 파란색
+  }
+}
